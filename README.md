@@ -11,6 +11,5 @@ If you wish to develop and host this codebase in a closed source manner you may 
 
 See [here](https://www.gnu.org/licenses/why-affero-gpl.html) for more information.
 
-
 ### WEBSITE
 Our website can be found [here](http://titanstation.net)
