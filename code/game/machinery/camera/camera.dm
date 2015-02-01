@@ -54,7 +54,7 @@
 /obj/machinery/camera/Del()
 	if(!alarm_on)
 		triggerCameraAlarm()
-	
+
 	cancelCameraAlarm()
 	..()
 
@@ -66,12 +66,12 @@
 			kick_viewers()
 			triggerCameraAlarm()
 			update_icon()
-			
+
 			spawn(900)
 				stat &= ~EMPED
 				cancelCameraAlarm()
 				update_icon()
-			
+
 			..()
 
 /obj/machinery/camera/bullet_act(var/obj/item/projectile/P)
@@ -81,11 +81,11 @@
 /obj/machinery/camera/ex_act(severity)
 	if(src.invuln)
 		return
-	
+
 	//camera dies if an explosion touches it!
 	if(severity <= 2 || prob(50))
 		destroy()
-	
+
 	..() //and give it the regular chance of being deleted outright
 
 
@@ -170,7 +170,7 @@
 				if (S.current == src)
 					O << "[U] holds \a [itemname] up to one of the cameras ..."
 					O << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", itemname, info), text("window=[]", itemname))
-	
+
 	else if (istype(W, /obj/item/weapon/camera_bug))
 		if (!src.can_use())
 			user << "\blue Camera non-functional"
@@ -181,7 +181,7 @@
 		else
 			user << "\blue Camera bugged."
 			src.bugged = 1
-			
+
 	else if(W.damtype == BRUTE || W.damtype == BURN) //bashing cameras
 		if (W.force >= src.toughness)
 			visible_message("<span class='warning'><b>[src] has been [pick(W.attack_verb)] with [W] by [user]!</b></span>")
@@ -190,7 +190,7 @@
 				if (I.hitsound)
 					playsound(loc, I.hitsound, 50, 1, -1)
 		take_damage(W.force)
-	
+
 	else
 		..()
 
@@ -216,13 +216,13 @@
 	if (force >= toughness && (force > toughness*4 || prob(25)))
 		destroy()
 
-//Used when someone breaks a camera 
+//Used when someone breaks a camera
 /obj/machinery/camera/proc/destroy()
 	stat |= BROKEN
 	kick_viewers()
 	triggerCameraAlarm()
 	update_icon()
-	
+
 	//sparks
 	var/datum/effect/effect/system/spark_spread/spark_system = new /datum/effect/effect/system/spark_spread()
 	spark_system.set_up(5, 0, loc)
@@ -259,7 +259,7 @@
 	alarm_on = 1
 	if(!get_area(src))
 		return
-	
+
 	for(var/mob/living/silicon/S in mob_list)
 		S.triggerAlarm("Camera", get_area(src), list(src), src)
 
@@ -268,7 +268,7 @@
 	alarm_on = 0
 	if(!get_area(src))
 		return
-	
+
 	for(var/mob/living/silicon/S in mob_list)
 		S.cancelAlarm("Camera", get_area(src), src)
 
@@ -348,10 +348,16 @@
 /obj/machinery/camera/interact(mob/living/user as mob)
 	if(!panel_open || istype(user, /mob/living/silicon/ai))
 		return
-	
+
 	if(stat & BROKEN)
 		user << "<span class='warning'>\The [src] is broken.</span>"
 		return
 
 	user.set_machine(src)
 	wires.Interact(user)
+
+/obj/machinery/camera/proc/reset()
+	if(!wires)
+		return
+	wires.CutAll()
+	wires.MendAll()

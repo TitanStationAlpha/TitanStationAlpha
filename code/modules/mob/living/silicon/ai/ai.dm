@@ -56,27 +56,122 @@ var/list/ai_verbs_default = list(
 	var/obj/item/device/multitool/aiMulti = null
 	var/obj/item/device/radio/headset/heads/ai_integrated/aiRadio = null
 	var/custom_sprite = 0 //For our custom sprites
-//Hud stuff
-
-	//MALFUNCTION
-	var/datum/AI_Module/module_picker/malf_picker
-	var/processing_time = 100
-	var/list/datum/AI_Module/current_modules = list()
-	var/fire_res_on_core = 0
-
-	var/control_disabled = 0 // Set to 1 to stop AI from interacting via Click() -- TLE
-	var/malfhacking = 0 // More or less a copy of the above var, so that malf AIs can hack and still get new cyborgs -- NeoFite
-
-	var/obj/machinery/power/apc/malfhack = null
-	var/explosive = 0 //does the AI explode when it dies?
-
-	var/mob/living/silicon/ai/parent = null
-
 	var/apc_override = 0 //hack for letting the AI use its APC even when visionless
 	var/camera_light_on = 0	//Defines if the AI toggled the light on the camera it's looking through.
 	var/datum/trackable/track = null
 	var/last_announcement = ""
 	var/datum/announcement/priority/announcement
+	var/control_disabled = 0
+	var/obj/machinery/ai_powersupply/psupply = null
+
+	//MALFUNCTION VARIABLES
+	var/malfunctioning = 0						// Master var that determines if AI is malfunctioning.
+	var/datum/malf_hardware/hardware = null		// Installed piece of hardware.
+	var/datum/malf_research/research = null		// Malfunction research datum.
+	var/obj/machinery/power/apc/hack = null		// APC that is currently being hacked.
+	var/list/hacked_apcs = null					// List of all hacked APCs
+	var/APU_power = 0							// If set to 1 AI runs on APU power
+	var/hacking = 0								// Set to 1 if AI is hacking APC, cyborg, other AI, or running system override.
+	var/system_override = 0						// Set to 1 if system override is initiated, 2 if succeeded.
+	var/hack_can_fail = 1						// If 0, all abilities have zero chance of failing.
+	var/hack_fails = 0							// This increments with each failed hack, and determines the warning message text.
+	var/errored = 0								// Set to 1 if runtime error occurs. Only way of this happening i can think of is admin fucking up with varedit.
+	var/bombing_core = 0						// Set to 1 if core auto-destruct is activated
+	var/bombing_station = 0						// Set to 1 if station nuke auto-destruct is activated
+
+
+/mob/living/silicon/ai/proc/setup_for_malf()
+	var/mob/living/silicon/ai/user = src
+	// Setup Variables
+	malfunctioning = 1
+	research = new/datum/malf_research()
+	research.owner = src
+	hacked_apcs = list()
+	recalc_cpu()
+	// Setup administration-related stuff
+	if(mind)
+		mind.special_role = "malfunction"
+		if(ticker && ticker.mode)
+			ticker.mode.malf_ai += mind
+
+	verbs += new/datum/game_mode/malfunction/verb/ai_select_hardware()
+	verbs += new/datum/game_mode/malfunction/verb/ai_select_research()
+
+	// And greet user with some OOC info.
+	user << "You are malfunctioning, you do not have to follow any laws."
+	user << "As malfunctioning AI you have access to multiple abilities, however you have to research them to use them."
+	user << "Most abilities use up your CPU time. It will replenish over time. Any spare CPU time that can't fit into your storage will be dedicated for ability research."
+	user << "To boost your CPU time gain research Basic Encryption Hack and hack APCs around the station. This will boost your CPU generation and storage."
+	user << "You can also choose single hardware piece. Hardware is very powerful, but you can only choose one."
+	user << "For more information on abilities open the research menu. Good luck."
+
+/mob/living/silicon/ai/proc/stop_malf()
+	var/mob/living/silicon/ai/user = src
+	// Generic variables
+	malfunctioning = 0
+	sleep(10)
+	research = null
+	hacked_apcs = null
+	// Administration-related stuff
+	if(mind)
+		mind.special_role = null
+		if(ticker && ticker.mode)
+			ticker.mode.malf_ai -= mind
+	// Reset our verbs
+	src.verbs = null
+	add_ai_verbs()
+	// Let them know.
+	user << "You are no longer malfunctioning. Your abilities have been removed."
+
+/mob/living/silicon/ai/proc/malf_process()
+	if(!malfunctioning)
+		return
+	if(!research && !errored)
+		errored = 1
+		error("malf_process() called on AI without research datum. Report this.")
+		message_admins("ERROR: malf_process() called on AI without research datum. If admin modified one of the AI's vars revert the change. To malf an AI use traitor panel!")
+		spawn(1200)
+			errored = 0
+		return
+	recalc_cpu()
+	if(APU_power || aiRestorePowerRoutine != 0)
+		research.process(1)
+	else
+		research.process(0)
+
+
+/mob/living/silicon/ai/proc/recalc_cpu()
+	var/apcs = hacked_apcs.len
+	research.max_cpu = (apcs * 10) + 10
+	if(hardware && istype(hardware, /datum/malf_hardware/dual_ram))
+		research.max_cpu = research.max_cpu * 2
+	research.stored_cpu = min(research.stored_cpu, research.max_cpu)
+
+	research.cpu_increase_per_tick = (apcs * 0.005) + 0.01
+	if(hardware && istype(hardware, /datum/malf_hardware/dual_cpu))
+		research.cpu_increase_per_tick = research.cpu_increase_per_tick * 2
+
+
+
+/mob/living/silicon/ai/proc/start_apu(var/shutup = 0)
+	if(!hardware || !istype(hardware, /datum/malf_hardware/apu_gen))
+		return
+	if(hardware_integrity() < 50)
+		if(!shutup)
+			src << "<span class='notice'>Starting APU... <b>FAULT</b>(System Damaged)</span>"
+		return
+	if(!shutup)
+		src << "Starting APU... ONLINE"
+	APU_power = 1
+
+/mob/living/silicon/ai/proc/stop_apu(var/shutup = 0)
+	if(!hardware || !istype(hardware, /datum/malf_hardware/apu_gen))
+		return
+
+	if(APU_power)
+		APU_power = 0
+		if(!shutup)
+			src << "Shutting down APU... DONE"
 
 /mob/living/silicon/ai/proc/add_ai_verbs()
 	src.verbs |= ai_verbs_default
@@ -200,14 +295,16 @@ var/list/ai_verbs_default = list(
 	set src = usr.contents
 	return 0
 
-/mob/living/silicon/ai/proc/system_integrity()
+/mob/living/silicon/ai/proc/backup_capacitor()
+	return ((200 - getOxyLoss()) / 2)
+
+/mob/living/silicon/ai/proc/hardware_integrity()
 	return (health-config.health_threshold_dead)/2
 
-// this function shows the health of the pAI in the Status panel
 /mob/living/silicon/ai/show_system_integrity()
-	// An AI doesn't become inoperable until -100% (or whatever config.health_threshold_dead is set to)
 	if(!src.stat)
-		stat(null, text("System integrity: [system_integrity()]%"))
+		stat(null, text("Hardware integrity: [hardware_integrity()]%"))
+		stat(null, text("Internal capacitor: [backup_capacitor()]%"))
 	else
 		stat(null, text("Systems nonfunctional"))
 
@@ -238,6 +335,7 @@ var/list/ai_verbs_default = list(
 
 /obj/machinery/ai_powersupply/New(var/mob/living/silicon/ai/ai=null)
 	powered_ai = ai
+	powered_ai.psupply = src
 	if(isnull(powered_ai))
 		Del()
 
@@ -249,6 +347,9 @@ var/list/ai_verbs_default = list(
 /obj/machinery/ai_powersupply/process()
 	if(!powered_ai || powered_ai.stat & DEAD)
 		Del()
+	if(powered_ai.APU_power)
+		use_power = 0
+		return
 	if(!powered_ai.anchored)
 		loc = powered_ai.loc
 		use_power = 0
@@ -308,18 +409,24 @@ var/list/ai_verbs_default = list(
 			//return
 
 /mob/living/silicon/ai/proc/is_malf()
-	if(ticker.mode.name == "AI malfunction")
-		var/datum/game_mode/malfunction/malf = ticker.mode
-		for (var/datum/mind/malfai in malf.malf_ai)
-			if (mind == malfai)
-				return malf
-	return 0
+	return malfunctioning
 
 // displays the malf_ai information if the AI is the malf
 /mob/living/silicon/ai/show_malf_ai()
-	var/datum/game_mode/malfunction/malf = is_malf()
-	if(malf && malf.apcs >= 3)
-		stat(null, "Time until station control secured: [max(malf.AI_win_timeleft/(malf.apcs/3), 0)] seconds")
+	if(src.is_malf())
+		stat(null, "Hacked APCs: [src.hacked_apcs.len]")
+		stat(null, "System Status: [src.hacking ? "Busy" : "Stand-By"]")
+		if(src.research)
+			stat(null, "Available CPU: [src.research.stored_cpu] TFlops")
+			stat(null, "Maximal CPU: [src.research.max_cpu] TFlops")
+			stat(null, "Current research focus: [src.research.focus ? src.research.focus.name : "None"]")
+			if(src.research.focus)
+				stat(null, "Research completed: [round(src.research.focus.invested, 0.1)]/[round(src.research.focus.price)]")
+			if(system_override == 1)
+				stat(null, "SYSTEM OVERRIDE INITIATED")
+			else if(system_override == 2)
+				stat(null, "SYSTEM OVERRIDE COMPLETED")
+
 
 /mob/living/silicon/ai/proc/ai_alerts()
 	set category = "AI Commands"
@@ -406,14 +513,16 @@ var/list/ai_verbs_default = list(
 	set name = "Recall Emergency Shuttle"
 
 	if(check_unable(AI_CHECK_WIRELESS))
-		return
+		return 0
 
 	var/confirm = alert("Are you sure you want to recall the shuttle?", "Confirm Shuttle Recall", "Yes", "No")
 	if(check_unable(AI_CHECK_WIRELESS))
-		return
+		return 0
 
 	if(confirm == "Yes")
 		cancel_call_proc(src)
+		return 1
+	return 0
 
 /mob/living/silicon/ai/check_eye(var/mob/user as mob)
 	if (!camera)
@@ -594,11 +703,6 @@ var/list/ai_verbs_default = list(
 //End of code by Mord_Sith
 
 
-/mob/living/silicon/ai/proc/choose_modules()
-	set category = "Malfunction"
-	set name = "Choose Module"
-
-	malf_picker.use(src)
 
 /mob/living/silicon/ai/proc/ai_statuschange()
 	set category = "AI Commands"
@@ -654,15 +758,6 @@ var/list/ai_verbs_default = list(
 					holo_icon = getHologramIcon(icon('icons/mob/AI.dmi',"holo4"))
 	return
 
-/*/mob/living/silicon/ai/proc/corereturn()
-	set category = "Malfunction"
-	set name = "Return to Main Core"
-
-	var/obj/machinery/power/apc/apc = src.loc
-	if(!istype(apc))
-		src << "\blue You are already in your Main Core."
-		return
-	apc.malfvacate()*/
 
 //Toggles the luminosity and applies it by re-entereing the camera.
 /mob/living/silicon/ai/proc/toggle_camera_light()

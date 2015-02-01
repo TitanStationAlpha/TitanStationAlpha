@@ -12,14 +12,7 @@
 
 		src.updatehealth()
 
-		if (src.malfhack)
-			if (src.malfhack.aidisabled)
-				src << "\red ERROR: APC access disabled, hack attempt canceled."
-				src.malfhacking = 0
-				src.malfhack = null
-
-
-		if (src.health <= config.health_threshold_dead)
+		if (!hardware_integrity() || !backup_capacitor())
 			death()
 			return
 
@@ -28,53 +21,37 @@
 				src.reset_view(null)
 
 		// Handle power damage (oxy)
-		if(src:aiRestorePowerRoutine != 0)
-			// Lost power
+		if(aiRestorePowerRoutine != 0 && !APU_power)
+			// Losé power
 			adjustOxyLoss(1)
 		else
 			// Gain Power
+			aiRestorePowerRoutine = 0
 			adjustOxyLoss(-1)
+
+		malf_process()
+
+		if(APU_power && (hardware_integrity() < 50))
+			src << "<span class='notice'><b>APU GENERATOR FAILURE! (System Damaged)</b></span>"
+			stop_apu(1)
 
 		// Handle EMP-stun
 		handle_stunned()
 
-		//stage = 1
-		//if (istype(src, /mob/living/silicon/ai)) // Are we not sure what we are?
 		var/blind = 0
-		//stage = 2
 		var/area/loc = null
 		if (istype(T, /turf))
-			//stage = 3
 			loc = T.loc
 			if (istype(loc, /area))
-				//stage = 4
-				if (!loc.master.power_equip && !istype(src.loc,/obj/item))
-					//stage = 5
+				if ((!loc.master.power_equip && !istype(src.loc,/obj/item)) && !APU_power)
 					blind = 1
 
-		if (!blind)	//lol? if(!blind)	#if(src.blind.layer)    <--something here is clearly wrong :P
-					//I'll get back to this when I find out  how this is -supposed- to work ~Carn //removed this shit since it was confusing as all hell --39kk9t
-			//stage = 4.5
+		if (!blind)
 			src.sight |= SEE_TURFS
 			src.sight |= SEE_MOBS
 			src.sight |= SEE_OBJS
 			src.see_in_dark = 8
 			src.see_invisible = SEE_INVISIBLE_LEVEL_TWO
-
-
-			//Congratulations!  You've found a way for AI's to run without using power!
-			//Todo:  Without snowflaking up master_controller procs find a way to make AI use_power but only when APC's clear the area usage the tick prior
-			//       since mobs are in master_controller before machinery.  We also have to do it in a manner where we don't reset the entire area's need to update
-			//	 the power usage.
-			//
-			//	 We can probably create a new machine that resides inside of the AI contents that uses power using the idle_usage of 1000 and nothing else and
-			//       be fine.
-/*
-			var/area/home = get_area(src)
-			if(!home)	return//something to do with malf fucking things up I guess. <-- aisat is gone. is this still necessary? ~Carn
-			if(home.powered(EQUIP))
-				home.use_power(1000, EQUIP)
-*/
 
 			if (src:aiRestorePowerRoutine==2)
 				src << "Alert cancelled. Power has been restored without our assistance."
@@ -86,9 +63,12 @@
 				src:aiRestorePowerRoutine = 0
 				src.blind.layer = 0
 				return
+			else if (APU_power)
+				src:aiRestorePowerRoutine = 0
+				src.blind.layer = 0
+				return
 		else
 
-			//stage = 6
 			src.blind.screen_loc = "1,1 to 15,15"
 			if (src.blind.layer!=18)
 				src.blind.layer = 18
@@ -98,17 +78,11 @@
 			src.see_in_dark = 0
 			src.see_invisible = SEE_INVISIBLE_LIVING
 
-			if (((!loc.master.power_equip) || istype(T, /turf/space)) && !istype(src.loc,/obj/item))
+			if (((!loc.master.power_equip) || istype(T, /turf/space)) && !istype(src.loc,/obj/item) && !APU_power)
 				if (src:aiRestorePowerRoutine==0)
 					src:aiRestorePowerRoutine = 1
 
 					src << "You've lost power!"
-//							world << "DEBUG CODE TIME! [loc] is the area the AI is sucking power from"
-					if (!is_special_character(src))
-						src.set_zeroth_law("")
-					//src.clear_supplied_laws() // Don't reset our laws.
-					//var/time = time2text(world.realtime,"hh:mm:ss")
-					//lawchanges.Add("[time] <b>:</b> [src.name]'s noncore laws have been reset due to power failure")
 					spawn(20)
 						src << "Backup battery online. Scanners, camera, and radio interface offline. Beginning fault-detection."
 						sleep(50)
@@ -129,13 +103,6 @@
 						src << "Connection verified. Searching for APC in power network."
 						sleep(50)
 						var/obj/machinery/power/apc/theAPC = null
-/*
-						for (var/something in loc)
-							if (istype(something, /obj/machinery/power/apc))
-								if (!(something:stat & BROKEN))
-									theAPC = something
-									break
-*/
 						var/PRP //like ERP with the code, at least this stuff is no more 4x sametext
 						for (PRP=1, PRP<=4, PRP++)
 							var/area/AIarea = get_area(src)
@@ -186,11 +153,9 @@
 	if(status_flags & GODMODE)
 		health = 100
 		stat = CONSCIOUS
+		setOxyLoss(0)
 	else
-		if(fire_res_on_core)
-			health = 100 - getOxyLoss() - getToxLoss() - getBruteLoss()
-		else
-			health = 100 - getOxyLoss() - getToxLoss() - getFireLoss() - getBruteLoss()
+		health = 100 - getToxLoss() - getFireLoss() - getBruteLoss()
 
 /mob/living/silicon/ai/rejuvenate()
 	..()

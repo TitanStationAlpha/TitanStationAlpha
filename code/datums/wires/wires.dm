@@ -280,12 +280,18 @@ var/const/POWER = 8
 
 /datum/wires/proc/CutAll()
 	for(var/i = 1; i < MAX_FLAG && i < (1 << wire_count); i += i)
-		CutWireIndex(i)
+		if(!IsIndexCut(i))
+			CutWireIndex(i)
 
 /datum/wires/proc/IsAllCut()
 	if(wires_status == (1 << wire_count) - 1)
 		return 1
 	return 0
+
+/datum/wires/proc/MendAll()
+	for(var/i = 1; i < MAX_FLAG && i < (1 << wire_count); i += i)
+		if(IsIndexCut(i))
+			CutWireIndex(i)
 
 //
 //Shuffle and Mend

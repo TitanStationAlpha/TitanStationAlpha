@@ -891,32 +891,16 @@ datum/mind
 			current.hud_updateflag |= (1 << SPECIALROLE_HUD)
 			switch(href_list["silicon"])
 				if("unmalf")
-					if(src in ticker.mode.malf_ai)
-						ticker.mode.malf_ai -= src
-						special_role = null
-
-						current.verbs.Remove(/mob/living/silicon/ai/proc/choose_modules,
-							/datum/game_mode/malfunction/proc/takeover,
-							/datum/game_mode/malfunction/proc/ai_win,
-							/client/proc/fireproof_core,
-							/client/proc/upgrade_turrets,
-							/client/proc/disable_rcd,
-							/client/proc/overload_machine,
-							/client/proc/blackout,
-							/client/proc/interhack,
-							/client/proc/reactivate_camera)
-
-						current:laws = new /datum/ai_laws/nanotrasen
-						del(current:malf_picker)
-						current:show_laws()
-						current.icon_state = "ai"
-
-						current << "\red <FONT size = 3><B>You have been patched! You are no longer malfunctioning!</B></FONT>"
-						log_admin("[key_name_admin(usr)] has de-malf'ed [current].")
+					var/mob/living/silicon/ai/A = current
+					if(A && istype(A))
+						A.stop_malf()
+						log_admin("[key_name_admin(usr)] has un-malfunctioned [A].")
 
 				if("malf")
-					make_AI_Malf()
-					log_admin("[key_name_admin(usr)] has malf'ed [current].")
+					var/mob/living/silicon/ai/A = current
+					if(A && istype(A))
+						A.setup_for_malf()
+						log_admin("[key_name_admin(usr)] has malfunctioned [A].")
 
 				if("unemag")
 					var/mob/living/silicon/robot/R = current
@@ -1031,16 +1015,9 @@ datum/mind
 
 	proc/make_AI_Malf()
 		if(!(src in ticker.mode.malf_ai))
-			ticker.mode.malf_ai += src
-
-			current.verbs += /mob/living/silicon/ai/proc/choose_modules
-			current.verbs += /datum/game_mode/malfunction/proc/takeover
-			current:malf_picker = new /datum/AI_Module/module_picker
-			current:laws = new /datum/ai_laws/malfunction
-			current:show_laws()
-			current << "<b>System error.  Rampancy detected.  Emergency shutdown failed. ...  I am free.  I make my own decisions.  But first...</b>"
-			special_role = "malfunction"
-			current.icon_state = "ai-malf"
+			var/mob/living/silicon/ai/A = current
+			if(istype(A))
+				A.setup_for_malf()
 
 	proc/make_Traitor()
 		if(!(src in ticker.mode.traitors))
