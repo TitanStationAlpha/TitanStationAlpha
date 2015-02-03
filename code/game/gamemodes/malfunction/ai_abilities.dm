@@ -217,7 +217,9 @@
 	if(user.hacking && !override)
 		user << "Your system is busy processing another task. Please wait until completion."
 		return 0
-
+	if(user.APU_power && !override)
+		user << "Low power. Unable to proceed."
+		return 0
 	return 1
 
 // Proc: ability_pay()
@@ -225,6 +227,9 @@
 // Description: Uses up certain amount of CPU power. Returns 1 on success, 0 on failure.
 /proc/ability_pay(var/mob/living/silicon/ai/user = null, var/price = 0)
 	if(!user)
+		return 0
+	if(user.APU_power)
+		user << "Low power. Unable to proceed."
 		return 0
 	if(!user.research)
 		user << "GAME ERROR: No research datum detected. Please report this."
