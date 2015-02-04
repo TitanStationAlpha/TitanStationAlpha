@@ -296,6 +296,11 @@ var/list/forbidden_varedit_object_types = list(
 
 		variable = param_var_name
 
+		// Hopefully prevents accidental modifications of vars that break movement, etc.
+		if(variable in dangerous_vars)
+			if(alert(usr, "WARNING: Editing this variable is very likely to break movement. This can only be fixed by starting new round. Are you ABSOLUTELY sure you wish to proceed?", "Modify dangerous variable?", "NO", "YES") != "YES")
+				return
+
 		var_value = O.vars[variable]
 
 		if(autodetect_class)

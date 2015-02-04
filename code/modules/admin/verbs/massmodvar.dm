@@ -46,7 +46,14 @@
 	else
 		variable = var_name
 
-	if(!variable)	return
+	if(!variable)
+		return
+
+	// Hopefully prevents accidental modifications of vars that break movement, etc.
+	if(var_name in dangerous_vars)
+		if(alert(usr, "WARNING: Editing this variable is very likely to break movement. This can only be fixed by starting new round. Are you ABSOLUTELY sure you wish to proceed?", "Modify dangerous variable?", "NO", "YES") != "YES")
+			return
+
 	var/default
 	var/var_value = O.vars[variable]
 	var/dir
