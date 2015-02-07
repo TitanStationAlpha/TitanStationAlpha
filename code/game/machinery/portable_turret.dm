@@ -21,6 +21,8 @@
 	var/raised = 0			//if the turret cover is "open" and the turret is raised
 	var/raising= 0			//if the turret is currently opening or closing its cover
 	var/health = 80			//the turret's health
+	var/maxhealth = 80		//turrets maximal health.
+	var/auto_repair = 0		//if 1 the turret slowly repairs itself.
 	var/locked = 1			//if the turret's behaviour control access is locked
 	var/controllock = 0		//if the turret responds to control panels
 
@@ -154,6 +156,12 @@
 		user << "<span class='notice'>There seems to be a firewall preventing you from accessing this device.</span>"
 		return 0
 
+	if (get_dist(src, user) > 1 && !issilicon(user))
+		user << "<span class='notice'>You are too far away.</span>"
+		user.unset_machine()
+		user << browse(null, "window=turretid")
+		return 0
+
 	if(locked && !issilicon(user))
 		user << "<span class='notice'>Access denied.</span>"
 		return 0
@@ -175,7 +183,6 @@
 				<TT><B>Automatic Portable Turret Installation</B></TT><BR><BR>
 				Status: []<BR>
 				Behaviour controls are [locked ? "locked" : "unlocked"]"},
-
 				"<A href='?src=\ref[src];power=1'>[on ? "On" : "Off"]</A>" )
 
 	if(!locked || issilicon(user))
@@ -454,6 +461,10 @@
 			spawn()
 				popDown() // no valid targets, close the cover
 
+	if(auto_repair && (health < maxhealth))
+		use_power(20000)
+		health = min(health+1, maxhealth) // 1HP for 20kJ
+
 /obj/machinery/porta_turret/proc/assess_and_assign(var/mob/living/L, var/list/targets, var/list/secondarytargets)
 	switch(assess_living(L))
 		if(TURRET_PRIORITY_TARGET)
@@ -546,7 +557,7 @@
 	raising = 0
 	cover.icon_state = "turretCover"
 	raised = 0
-	invisibility = 2
+	invisibility = INVISIBILITY_LEVEL_TWO
 	update_icon()
 
 
@@ -816,7 +827,7 @@
 
 	if(istype(I, /obj/item/weapon/pen))	//you can rename turrets like bots!
 		var/t = input(user, "Enter new turret name", name, finish_name) as text
-		t = copytext(sanitize(t), 1, MAX_MESSAGE_LEN)
+		t = sanitize(copytext(t, 1, MAX_MESSAGE_LEN))
 		if(!t)
 			return
 		if(!in_range(src, usr) && loc != usr)

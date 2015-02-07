@@ -4,7 +4,6 @@
 	icon_state = "aicard" // aicard-full
 	item_state = "electronic"
 	w_class = 2.0
-	flags = FPRINT | TABLEPASS
 	slot_flags = SLOT_BELT
 	var/flush = null
 	origin_tech = "programming=4;materials=4"
@@ -25,7 +24,7 @@
 	var/dat = "<TT><B>Intelicard</B><BR>"
 	var/laws
 	for(var/mob/living/silicon/ai/A in src)
-		dat += "Stored AI: [A.name]<br>System integrity: [A.system_integrity()]%<br>"
+		dat += "Stored AI: [A.name]<br>Hardware integrity: [A.hardware_integrity()]%<br>Backup capacitor: [A.backup_capacitor()]%<br>"
 
 		for (var/law in A.laws.ion)
 			if(law)

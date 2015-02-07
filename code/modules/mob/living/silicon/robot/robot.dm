@@ -519,21 +519,6 @@ var/list/robot_verbs_default = list(
 		C.toggled = 1
 		src << "\red You enable [C.name]."
 
-// this function shows information about the malf_ai gameplay type in the status screen
-/mob/living/silicon/robot/show_malf_ai()
-	..()
-	if(ticker.mode.name == "AI malfunction")
-		var/datum/game_mode/malfunction/malf = ticker.mode
-		for (var/datum/mind/malfai in malf.malf_ai)
-			if(connected_ai)
-				if(connected_ai.mind == malfai)
-					if(malf.apcs >= 3)
-						stat(null, "Time until station control secured: [max(malf.AI_win_timeleft/(malf.apcs/3), 0)] seconds")
-			else if(ticker.mode:malf_mode_declared)
-				stat(null, "Time left: [max(ticker.mode:AI_win_timeleft/(ticker.mode:apcs/3), 0)]")
-	return 0
-
-
 // this function displays jetpack pressure in the stat panel
 /mob/living/silicon/robot/proc/show_jetpack_pressure()
 	// if you have a jetpack, show the internal tank pressure
@@ -1304,4 +1289,5 @@ var/list/robot_verbs_default = list(
 		if(2) //New Module
 			connected_ai << "<br><br><span class='notice'>NOTICE - [braintype] module change detected: [name] has loaded the [module.name].</span><br>"
 		if(3) //New Name
-			connected_ai << "<br><br><span class='notice'>NOTICE - [braintype] reclassification detected: [oldname] is now designated as [newname].</span><br>"
+			if(oldname != newname)
+				connected_ai << "<br><br><span class='notice'>NOTICE - [braintype] reclassification detected: [oldname] is now designated as [newname].</span><br>"

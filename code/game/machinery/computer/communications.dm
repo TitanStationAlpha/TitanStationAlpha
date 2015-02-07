@@ -175,10 +175,10 @@
 					post_status(href_list["statdisp"])
 
 		if("setmsg1")
-			stat_msg1 = reject_bad_text(trim(copytext(sanitize(input("Line 1", "Enter Message Text", stat_msg1) as text|null), 1, 40)), 40)
+			stat_msg1 = reject_bad_text(trim(sanitize(copytext(input("Line 1", "Enter Message Text", stat_msg1) as text|null, 1, 40))), 40)
 			src.updateDialog()
 		if("setmsg2")
-			stat_msg2 = reject_bad_text(trim(copytext(sanitize(input("Line 2", "Enter Message Text", stat_msg2) as text|null), 1, 40)), 40)
+			stat_msg2 = reject_bad_text(trim(sanitize(copytext(input("Line 2", "Enter Message Text", stat_msg2) as text|null, 1, 40))), 40)
 			src.updateDialog()
 
 		// OMG CENTCOMM LETTERHEAD
@@ -487,7 +487,7 @@
 			user << "The shuttle is refueling. Please wait another [round((54000-world.time)/60)] minutes before trying again."
 			return
 
-		if(ticker.mode.name == "revolution" || ticker.mode.name == "AI malfunction" || ticker.mode.name == "sandbox")
+		if(ticker.mode.name == "revolution" || ticker.mode.name == "sandbox")
 			//New version pretends to call the shuttle but cause the shuttle to return after a random duration.
 			emergency_shuttle.auto_recall = 1
 
@@ -496,8 +496,14 @@
 			return
 
 	emergency_shuttle.call_transfer()
-	log_game("[key_name(user)] has called the shuttle.")
-	message_admins("[key_name_admin(user)] has called the shuttle.", 1)
+
+	//delay events in case of an autotransfer
+	if (isnull(user))
+		event_manager.delay_events(EVENT_LEVEL_MODERATE, 9000) //15 minutes
+		event_manager.delay_events(EVENT_LEVEL_MAJOR, 9000)
+
+	log_game("[user? key_name(user) : "Autotransfer"] has called the shuttle.")
+	message_admins("[user? key_name_admin(user) : "Autotransfer"] has called the shuttle.", 1)
 
 	return
 
