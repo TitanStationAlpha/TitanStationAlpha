@@ -16,6 +16,9 @@
 			death()
 			return
 
+		if(!psupply)
+			create_powersupply()
+
 		if (src.machine)
 			if (!( src.machine.check_eye(src) ))
 				src.reset_view(null)
@@ -78,8 +81,7 @@
 			src.see_in_dark = 0
 			src.see_invisible = SEE_INVISIBLE_LIVING
 
-			if(!psupply)
-				create_powersupply()
+
 
 			if (((!loc.master.power_equip) || istype(T, /turf/space)) && !istype(src.loc,/obj/item) && !APU_power)
 				if (src:aiRestorePowerRoutine==0)

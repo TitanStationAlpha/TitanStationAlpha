@@ -187,6 +187,10 @@
 	if(terminal)
 		disconnect_terminal()
 
+	// Malf AI, removes the APC from AI's hacked APCs list.
+	if(hacker && hacker.hacked_apcs && src in hacker.hacked_apcs)
+		hacker.hacked_apcs -= src
+
 	//If there's no more APC then there shouldn't be a cause for alarm I guess
 	area.poweralert(1, src) //so that alarms don't go on forever
 
