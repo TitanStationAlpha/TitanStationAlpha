@@ -96,14 +96,11 @@ var/list/ai_verbs_default = list(
 
 	verbs += new/datum/game_mode/malfunction/verb/ai_select_hardware()
 	verbs += new/datum/game_mode/malfunction/verb/ai_select_research()
+	verbs += new/datum/game_mode/malfunction/verb/ai_help()
 
 	// And greet user with some OOC info.
 	user << "You are malfunctioning, you do not have to follow any laws."
-	user << "As malfunctioning AI you have access to multiple abilities, however you have to research them to use them."
-	user << "Most abilities use up your CPU time. It will replenish over time. Any spare CPU time that can't fit into your storage will be dedicated for ability research."
-	user << "To boost your CPU time gain research Basic Encryption Hack and hack APCs around the station. This will boost your CPU generation and storage."
-	user << "You can also choose single hardware piece. Hardware is very powerful, but you can only choose one."
-	user << "For more information on abilities open the research menu. Good luck."
+	user << "Use ai-help command to view relevant information about your abilities"
 
 /mob/living/silicon/ai/proc/stop_malf()
 	var/mob/living/silicon/ai/user = src
