@@ -126,8 +126,11 @@
 							"Turrets Focus Enhancer", \
 							"Secondary Processor Unit",\
 							"Secondary Memory Bank",\
-							"Self-Destruct Explosives")
+							"Self-Destruct Explosives",\
+							"CANCEL")
 	var/choice = input("Select desired hardware. You may only choose one hardware piece!: ") in possible_choices
+	if(choice == "CANCEL")
+		return
 	var/note = null
 	switch(choice)
 		if("APU Generator")
