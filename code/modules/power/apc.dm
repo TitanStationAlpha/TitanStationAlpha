@@ -87,7 +87,6 @@
 	var/autoflag= 0		// 0 = off, 1= eqp and lights off, 2 = eqp off, 3 = all on.
 //	luminosity = 1
 	var/has_electronics = 0 // 0 - none, 1 - plugged in, 2 - secured by screwdriver
-	var/overload = 1 //used for the Blackout malf module
 	var/beenhit = 0 // used for counting how many times it has been hit, used for Aliens at the moment
 	var/longtermpower = 10
 	var/datum/wires/apc/wires = null
@@ -163,6 +162,19 @@
 		src.update_icon()
 		spawn(5)
 			src.update()
+
+	// MALFUNCTION: AI that finished System Override will auto-hack new APCs if control wire is not cut within 30 seconds of APC construction.
+	var/mob/living/silicon/ai/H = null
+	for(var/mob/living/silicon/ai/A in world)
+		if(A.malfunctioning && A.system_override == 2)
+			H = A
+
+	if(!H)
+		return
+
+	spawn(300)
+		ai_hack(H)
+
 
 /obj/machinery/power/apc/Del()
 	area.power_light = 0
@@ -908,7 +920,7 @@
 	update_icon()
 
 /obj/machinery/power/apc/proc/ai_hack(var/mob/living/silicon/ai/A = null)
-	if(!A || !A.hacked_apcs || hacker || aidisabled)
+	if(!A || !A.hacked_apcs || hacker || aidisabled || A.stat == DEAD)
 		return 0
 	src.hacker = A
 	A.hacked_apcs += src

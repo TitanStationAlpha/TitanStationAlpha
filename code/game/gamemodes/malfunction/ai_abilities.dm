@@ -701,6 +701,12 @@
 
 	user << "## REACHABLE APC SYSTEMS OVERTAKEN. BYPASSING PRIMARY FIREWALL."
 	sleep(300)
+	// Hack all APCs, including those built during hack sequence.
+	for(var/obj/machinery/power/apc/A in machines)
+		if((!A.hacker || A.hacker != src) && !A.aidisabled)
+			A.ai_hack(src)
+
+
 	user << "## PRIMARY FIREWALL BYPASSED. YOU NOW HAVE FULL SYSTEM CONTROL."
 	command_announcement.Announce("Our system administrators just reported that we've been locked out from your control network. Whoever did this now has full access to station's systems.", "Network Administration Center")
 	user.hack_can_fail = 0
