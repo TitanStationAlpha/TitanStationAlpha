@@ -245,10 +245,6 @@ var/list/ai_verbs_default = list(
 
 			on_mob_init()
 
-	spawn(5)
-		new /obj/machinery/ai_powersupply(src)
-
-
 	hud_list[HEALTH_HUD]      = image('icons/mob/hud.dmi', src, "hudblank")
 	hud_list[STATUS_HUD]      = image('icons/mob/hud.dmi', src, "hudblank")
 	hud_list[ID_HUD]          = image('icons/mob/hud.dmi', src, "hudblank")
@@ -261,6 +257,11 @@ var/list/ai_verbs_default = list(
 	ai_list += src
 	..()
 	return
+
+/mob/living/silicon/ai/proc/create_powersupply()
+	if(psupply)
+		del(psupply)
+	psupply = new/obj/machinery/ai_powersupply(src)
 
 /mob/living/silicon/ai/proc/on_mob_init()
 	src << "<B>You are playing the station's AI. The AI cannot move, but can interact with many objects while viewing them (through cameras).</B>"
