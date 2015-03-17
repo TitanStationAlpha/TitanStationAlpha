@@ -38,6 +38,8 @@ var/list/paper_tag_whitelist = list("center","p","div","span","h1","h2","h3","h4
 var/list/paper_blacklist = list("java","onblur","onchange","onclick","ondblclick","onfocus","onkeydown",	\
 	"onkeypress","onkeyup","onload","onmousedown","onmousemove","onmouseout","onmouseover",	\
 	"onmouseup","onreset","onselect","onsubmit","onunload")
+// List of variables that require second confirmation to modify. Add things that are likely to break things here.
+var/list/dangerous_vars = list("step_x", "step_y", "bound_x", "bound_y", "step_size")
 
 // The way blocks are handled badly needs a rewrite, this is horrible.
 // Too much of a project to handle at the moment, TODO for later.
